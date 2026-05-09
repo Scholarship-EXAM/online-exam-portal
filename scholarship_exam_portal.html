@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industry 5.0 Scholarship Examination</title>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ── PASTE YOUR FIREBASE CONFIG HERE ──────────────────────────────────────
+  const firebaseConfig = {
+  apiKey: "AIzaSyBrS7ByBXdL7CEDoJ0bGbCgzCSVENBVeX8",
+  authDomain: "scholarship-exam-97930.firebaseapp.com",
+  projectId: "scholarship-exam-97930",
+  storageBucket: "scholarship-exam-97930.firebasestorage.app",
+  messagingSenderId: "777556145181",
+  appId: "1:777556145181:web:7f37cd17836e7fb56ac2f4",
+  measurementId: "G-VS829BW0RS"          
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expose DB helpers to global scope so the rest of the script can call them
+  window._fbCheckSubmitted = async (username) => {
+    const snap = await getDoc(doc(db, "submissions", username));
+    return snap.exists();
+  };
+
+  window._fbSaveResult = async (result) => {
+    // Save summary
+    await setDoc(doc(db, "submissions", result.username), result);
+    // Save per-question answers as a sub-document
+    await setDoc(doc(db, "answers", result.username), {
+      username: result.username,
+      submittedAt: result.submittedAt,
+      answers: result.answers,          // array of chosen option indices
+      correct: result.correctFlags       // array of true/false per question
+    });
+  };
+
+  window._fbLoadAllResults = async () => {
+    const snap = await getDocs(collection(db, "submissions"));
+    return snap.docs.map(d => d.data());
+  };
+
+  window._fbLoadAnswers = async (username) => {
+    const snap = await getDoc(doc(db, "answers", username));
+    return snap.exists() ? snap.data() : null;
+  };
+
+  window._fbReady = true;
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --card: #141c2e;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --gold-dim: rgba(201,168,76,0.12);
+  --text: #e8eaf0;
+  --text2: #8892a4;
+  --text3: #555f73;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --blue: #60a5fa;
+  --blue-bg: rgba(96,165,250,0.1);
+  --radius: 12px;
+  --radius2: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);z-index:100;}
+
+/* ---- SCREENS ---- */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ---- LOGIN ---- */
+#loginScreen{align-items:center;justify-content:center;padding:2rem;}
+.login-wrap{width:100%;max-width:420px;}
+.login-badge{display:flex;align-items:center;gap:10px;margin-bottom:2rem;}
+.login-badge-icon{width:42px;height:42px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.login-badge-text{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:500;}
+.login-title{font-family:'Playfair Display',serif;font-size:32px;color:var(--text);line-height:1.2;margin-bottom:6px;}
+.login-sub{font-size:14px;color:var(--text2);margin-bottom:2rem;}
+.login-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:2rem;}
+.form-group{margin-bottom:1.25rem;}
+.form-group label{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:500;}
+.form-group input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:11px 14px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;transition:border-color .2s,box-shadow .2s;outline:none;}
+.form-group input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.12);}
+.form-group input::placeholder{color:var(--text3);}
+.btn-login{width:100%;padding:13px;background:var(--gold);color:#0a0e1a;border:none;border-radius:var(--radius2);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.5px;transition:background .2s,transform .1s;}
+.btn-login:hover{background:var(--gold2);}
+.btn-login:active{transform:scale(0.98);}
+.err-msg{font-size:13px;color:var(--red);margin-top:10px;text-align:center;min-height:20px;}
+.login-footer{margin-top:1.5rem;text-align:center;font-size:12px;color:var(--text3);}
+
+/* ---- QUIZ ---- */
+#quizScreen{padding:0;}
+.quiz-topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.quiz-topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-logo{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold);}
+.topbar-user{font-size:13px;color:var(--text2);}
+.topbar-timer{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--text);background:var(--bg3);border:1px solid var(--border2);padding:5px 14px;border-radius:99px;}
+.topbar-timer.warning{color:var(--red);border-color:var(--red);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+.quiz-progress-bar{height:3px;background:var(--bg3);}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .4s ease;}
+.quiz-body{max-width:760px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.section-header{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:1.5rem;display:flex;align-items:center;gap:8px;}
+.section-header::after{content:'';flex:1;height:1px;background:var(--border);}
+.q-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem;margin-bottom:1rem;}
+.q-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:12px;}
+.q-text{font-size:15px;color:var(--text);line-height:1.65;margin-bottom:1.25rem;font-weight:400;}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:8px;cursor:pointer;transition:all .15s;font-size:14px;color:var(--text2);line-height:1.5;}
+.opt:hover{background:var(--bg3);border-color:var(--border2);color:var(--text);}
+.opt.sel{background:var(--gold-dim);border-color:var(--gold);color:var(--gold2);}
+.opt-letter{min-width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'DM Mono',monospace;font-weight:500;flex-shrink:0;margin-top:1px;}
+.opt.sel .opt-letter{background:var(--gold);border-color:var(--gold);color:#0a0e1a;}
+.nav-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;z-index:50;}
+.nav-info{font-size:13px;color:var(--text2);}
+.nav-info strong{color:var(--text);}
+.nav-btns{display:flex;gap:10px;}
+.btn-nav{padding:9px 22px;border-radius:var(--radius2);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;}
+.btn-prev{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-prev:hover{border-color:var(--border2);color:var(--text);background:var(--bg3);}
+.btn-next{background:var(--gold);border:none;color:#0a0e1a;}
+.btn-next:hover{background:var(--gold2);}
+.btn-submit-final{background:#16a34a;border:none;color:#fff;padding:9px 26px;border-radius:var(--radius2);font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.btn-submit-final:hover{background:#15803d;}
+.q-nav-dots{display:flex;flex-wrap:wrap;gap:5px;max-width:400px;}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);cursor:pointer;transition:all .1s;}
+.dot.answered{background:var(--gold);border-color:var(--gold);}
+.dot.current{border-color:var(--text2);box-shadow:0 0 0 2px rgba(136,146,164,0.3);}
+
+/* ---- SUBMITTED ---- */
+#submittedScreen{align-items:center;justify-content:center;padding:2rem;}
+.submitted-card{max-width:480px;width:100%;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:3rem 2rem;text-align:center;}
+.submitted-icon{width:72px;height:72px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:32px;}
+.submitted-title{font-family:'Playfair Display',serif;font-size:26px;margin-bottom:8px;}
+.submitted-sub{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:2rem;}
+.submitted-detail{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:1.25rem;margin-bottom:1.5rem;text-align:left;}
+.submitted-detail-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+.submitted-detail-row span:first-child{color:var(--text2);}
+.submitted-detail-row span:last-child{color:var(--text);font-weight:500;}
+.result-notice{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:var(--radius2);padding:14px 16px;font-size:13px;color:var(--gold);line-height:1.6;}
+
+/* ---- ADMIN DASHBOARD ---- */
+#adminScreen{padding:0;}
+.admin-topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 2rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.admin-logo{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold);}
+.admin-badge{font-size:11px;letter-spacing:2px;text-transform:uppercase;background:rgba(201,168,76,0.15);color:var(--gold);padding:4px 10px;border-radius:99px;border:1px solid rgba(201,168,76,0.3);}
+.admin-body{max-width:960px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:2rem;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
+.stat-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.stat-value{font-size:28px;font-weight:600;font-family:'Playfair Display',serif;color:var(--text);}
+.stat-value.gold{color:var(--gold);}
+.results-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.table-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-header h3{font-size:14px;font-weight:600;}
+.table-header span{font-size:12px;color:var(--text2);}
+table{width:100%;border-collapse:collapse;}
+th{padding:10px 1.5rem;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);}
+td{padding:13px 1.5rem;font-size:13px;border-bottom:1px solid var(--border);color:var(--text2);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+td:first-child,th:first-child{color:var(--text);}
+.rank-badge{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;font-family:'DM Mono',monospace;}
+.rank-1{background:rgba(201,168,76,0.2);color:var(--gold);border:1px solid rgba(201,168,76,0.4);}
+.rank-2{background:rgba(156,163,175,0.15);color:#9ca3af;border:1px solid rgba(156,163,175,0.3);}
+.rank-3{background:rgba(180,120,80,0.15);color:#b47850;border:1px solid rgba(180,120,80,0.3);}
+.rank-other{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.score-bar-wrap{width:120px;height:6px;background:var(--bg3);border-radius:99px;display:inline-block;vertical-align:middle;margin-left:8px;}
+.score-bar-fill{height:100%;border-radius:99px;}
+.grade-badge{font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500;font-family:'DM Mono',monospace;}
+.grade-a{background:rgba(34,197,94,0.12);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
+.grade-b{background:rgba(96,165,250,0.12);color:var(--blue);border:1px solid rgba(96,165,250,0.25);}
+.grade-c{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);}
+.grade-d{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.25);}
+.btn-detail{padding:5px 14px;background:transparent;border:1px solid var(--border2);color:var(--gold);border-radius:var(--radius2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-detail:hover{background:var(--gold-dim);}
+#detailOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-start;justify-content:center;z-index:600;padding:1.5rem;overflow-y:auto;}
+#detailPanel{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:900px;min-height:200px;}
+#detailPanel .dp-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:10;}
+#detailPanel .dp-header h3{font-size:15px;font-weight:600;color:var(--text);}
+.btn-close-detail{padding:6px 16px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-close-detail:hover{color:var(--text);background:var(--bg3);}
+#detailBody{padding:1.25rem 1.5rem;}
+.btn-logout:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
+.empty-state{padding:3rem;text-align:center;color:var(--text3);font-size:14px;}
+.subject-breakdown{margin-top:2rem;}
+.subject-row{display:flex;align-items:center;gap:12px;padding:10px 1.5rem;border-bottom:1px solid var(--border);font-size:13px;}
+.subject-row:last-child{border-bottom:none;}
+.subject-name{width:220px;color:var(--text2);}
+.subject-bar-wrap{flex:1;height:6px;background:var(--bg3);border-radius:99px;}
+.subject-bar-fill{height:100%;border-radius:99px;background:var(--gold);}
+.subject-score{width:60px;text-align:right;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+.modal-box{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:2rem;max-width:400px;width:100%;text-align:center;}
+.modal-box h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:8px;}
+.modal-box p{font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6;}
+.modal-btns{display:flex;gap:10px;justify-content:center;}
+.modal-cancel{padding:9px 22px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.modal-confirm{padding:9px 22px;background:#dc2626;border:none;color:#fff;border-radius:var(--radius2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* ---- FULLSCREEN GATE ---- */
+#fsGate{position:fixed;inset:0;background:#0a0e1a;display:flex;align-items:center;justify-content:center;z-index:9999;padding:2rem;}
+#fsGate .fs-card{max-width:440px;width:100%;background:var(--card);border:1px solid rgba(239,68,68,0.4);border-radius:var(--radius);padding:2.5rem 2rem;text-align:center;}
+#fsGate .fs-icon{font-size:42px;margin-bottom:1rem;}
+#fsGate h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text);}
+#fsGate p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:1.5rem;}
+#fsGate .btn-fs{padding:12px 32px;background:var(--gold);color:#0a0e1a;border:none;border-radius:var(--radius2);font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.5px;}
+#fsGate .btn-fs:hover{background:var(--gold2);}
+
+/* ---- VIOLATION WARNING ---- */
+#violationOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:none;align-items:center;justify-content:center;z-index:8888;padding:2rem;}
+#violationOverlay .viol-card{max-width:460px;width:100%;background:var(--card);border:2px solid var(--red);border-radius:var(--radius);padding:2.5rem 2rem;text-align:center;}
+#violationOverlay .viol-icon{font-size:48px;margin-bottom:1rem;}
+#violationOverlay h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--red);margin-bottom:8px;}
+#violationOverlay p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px;}
+#violationOverlay .viol-count{font-size:13px;color:var(--red);font-weight:600;margin-bottom:1.5rem;font-family:'DM Mono',monospace;}
+#violationOverlay .btn-resume{padding:11px 32px;background:var(--red);color:#fff;border:none;border-radius:var(--radius2);font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;}
+#violationOverlay .btn-resume:hover{background:#b91c1c;}
+.violation-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red);font-size:11px;padding:2px 8px;border-radius:99px;font-family:'DM Mono',monospace;margin-left:8px;vertical-align:middle;}
+
+/* ---- WATERMARK ---- */
+#watermark{
+  position:fixed;inset:0;pointer-events:none;z-index:400;
+  display:none;overflow:hidden;
+}
+#watermark canvas{position:absolute;inset:0;width:100%;height:100%;opacity:0.045;}
+
+/* ---- CAMERA WIDGET ---- */
+#camWidget{position:fixed;bottom:80px;right:20px;z-index:500;width:148px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.5);display:none;}
+#camWidget .cam-header{padding:6px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg3);}
+#camWidget .cam-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:5px;}
+#camWidget .cam-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:camPulse 1.5s infinite;}
+@keyframes camPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(239,68,68,0.5);}50%{opacity:.8;box-shadow:0 0 0 4px rgba(239,68,68,0);}}
+#camWidget video{width:100%;height:110px;object-fit:cover;display:block;background:#000;}
+#camWidget .cam-footer{padding:5px 10px;font-size:10px;color:var(--text3);text-align:center;}
+
+/* ---- CAMERA DENIED GATE ---- */
+#camDeniedGate{position:fixed;inset:0;background:#0a0e1a;display:none;align-items:center;justify-content:center;z-index:9998;padding:2rem;}
+#camDeniedGate .cam-denied-card{max-width:420px;width:100%;background:var(--card);border:1px solid rgba(239,68,68,0.4);border-radius:var(--radius);padding:2.5rem 2rem;text-align:center;}
+#camDeniedGate .cam-denied-icon{font-size:44px;margin-bottom:1rem;}
+#camDeniedGate h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:var(--text);}
+#camDeniedGate p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:1.5rem;}
+#camDeniedGate .btn-retry-cam{padding:12px 28px;background:var(--gold);color:#0a0e1a;border:none;border-radius:var(--radius2);font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;}
+#camDeniedGate .btn-retry-cam:hover{background:var(--gold2);}
+</style>
+</head>
+<body>
+
+<!-- FULLSCREEN GATE -->
+<div id="fsGate" style="display:none;">
+  <div class="fs-card">
+    <div class="fs-icon">⛔</div>
+    <h2>Fullscreen Required</h2>
+    <p>This examination must be taken in <strong style="color:var(--gold)">fullscreen mode</strong>.<br>Exiting fullscreen is treated as a violation and is recorded.<br><br>Press the button below to re-enter fullscreen and continue.</p>
+    <button class="btn-fs" onclick="enterFullscreen()">🖥️ Enter Fullscreen &amp; Resume</button>
+  </div>
+</div>
+
+<!-- VIOLATION WARNING -->
+<div id="violationOverlay" style="display:none;">
+  <div class="viol-card">
+    <div class="viol-icon">🚨</div>
+    <h2>Violation Detected!</h2>
+    <p>You switched tabs or left the exam window. This action has been <strong style="color:var(--red)">recorded</strong> and will be reported to the administrator.</p>
+    <div class="viol-count" id="violCountMsg">Violation #1 recorded.</div>
+    <button class="btn-resume" onclick="resumeFromViolation()">I Understand — Resume Exam</button>
+  </div>
+</div>
+
+<!-- WATERMARK -->
+<div id="watermark"><canvas id="wmCanvas"></canvas></div>
+
+<!-- CAMERA WIDGET (shown during exam) -->
+<div id="camWidget">
+  <div class="cam-header">
+    <div class="cam-label"><span class="cam-dot"></span> Live</div>
+    <span style="font-size:10px;color:var(--text3);">📷 CAM</span>
+  </div>
+  <video id="camVideo" autoplay muted playsinline></video>
+  <div class="cam-footer">Proctoring Active</div>
+</div>
+
+<!-- CAMERA DENIED GATE -->
+<div id="camDeniedGate" style="display:none;">
+  <div class="cam-denied-card">
+    <div class="cam-denied-icon">📷</div>
+    <h2>Camera Access Required</h2>
+    <p>This examination requires your <strong style="color:var(--gold)">camera to be ON</strong> throughout the exam for proctoring purposes.<br><br>Please allow camera access in your browser and click <strong>Retry</strong>. You cannot start the exam without camera access.</p>
+    <button class="btn-retry-cam" onclick="startCamera()">🔄 Allow Camera &amp; Retry</button>
+    <p style="margin-top:1rem;font-size:11px;color:var(--text3);">If blocked: click the 🔒 icon in your browser address bar → Allow Camera → Refresh.</p>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-badge">
+      <div class="login-badge-icon">🏭</div>
+      <div class="login-badge-text">Industry 5.0</div>
+    </div>
+    <div class="login-title">Scholarship<br>Examination</div>
+    <div class="login-sub">Sign in with your credentials to begin the examination</div>
+    <div class="login-card">
+      <div class="form-group">
+        <label for="uname">Username</label>
+        <input type="text" id="uname" placeholder="Enter your username" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="pwd">Password</label>
+        <input type="password" id="pwd" placeholder="Enter your password" />
+      </div>
+      <button class="btn-login" onclick="doLogin()">Sign In to Exam</button>
+      <div class="err-msg" id="loginErr"></div>
+    </div>
+    <div class="login-footer">Industry 5.0 Scholarship Examination</div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quizScreen" class="screen">
+  <div class="quiz-topbar">
+    <div class="quiz-topbar-left">
+      <div class="topbar-logo">🏭 Industry 5.0 Scholarship</div>
+      <div class="topbar-user" id="topbarUser"></div>
+    </div>
+    <div class="topbar-timer" id="topbarTimer">03:20:00</div>
+  </div>
+  <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgress" style="width:0.5%"></div></div>
+  <div class="quiz-body">
+    <div class="section-header" id="sectionHeader">Section 1 — Engineering Mathematics</div>
+    <div id="questionArea"></div>
+  </div>
+  <div class="nav-bar">
+    <div class="nav-info">
+      Q <strong id="navQNum">1</strong> of <strong>200</strong> &nbsp;·&nbsp;
+      <span id="navAnswered">0</span> answered
+    </div>
+    <div class="q-nav-dots" id="navDots"></div>
+    <div class="nav-btns">
+      <button class="btn-nav btn-prev" id="prevBtn" onclick="prevQ()">← Prev</button>
+      <button class="btn-nav btn-next" id="nextBtn" onclick="nextQ()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMITTED -->
+<div id="submittedScreen" class="screen">
+  <div class="submitted-card">
+    <div class="submitted-icon">✓</div>
+    <div class="submitted-title">Exam Submitted!</div>
+    <div class="submitted-sub">Your responses have been recorded successfully.<br>Thank you for appearing in the examination.</div>
+    <div class="submitted-detail">
+      <div class="submitted-detail-row"><span>Student Name</span><span id="subName"></span></div>
+      <div class="submitted-detail-row"><span>Questions Attempted</span><span id="subAttempted"></span></div>
+      <div class="submitted-detail-row"><span>Submitted At</span><span id="subTime"></span></div>
+    </div>
+    <div class="result-notice">🔒 Results will be declared tomorrow. You will be notified by your administrator.</div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen" class="screen">
+  <div class="admin-topbar">
+    <div class="admin-logo">🏭 Industry 5.0 Scholarship</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="admin-badge">Admin Dashboard</div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <div class="admin-stats">
+      <div class="stat-card"><div class="stat-label">Total Appeared</div><div class="stat-value gold" id="statAppeared">0</div></div>
+      <div class="stat-card"><div class="stat-label">Highest Score</div><div class="stat-value" id="statHighest">—</div></div>
+      <div class="stat-card"><div class="stat-label">Average Score</div><div class="stat-value" id="statAvg">—</div></div>
+      <div class="stat-card"><div class="stat-label">Pass Rate</div><div class="stat-value" id="statPass">—</div></div>
+    </div>
+    <div class="results-table-wrap">
+      <div class="table-header">
+        <h3>Student Results</h3>
+        <span id="tableDate"></span>
+      </div>
+      <div id="resultsTableBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT DETAIL OVERLAY -->
+<div id="detailOverlay">
+  <div id="detailPanel">
+    <div class="dp-header">
+      <h3 id="detailTitle">Student Answer Breakdown</h3>
+      <button class="btn-close-detail" onclick="document.getElementById('detailOverlay').style.display='none'">✕ Close</button>
+    </div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- CONFIRM SUBMIT MODAL -->
+<div class="modal-overlay" id="submitModal" style="display:none">
+  <div class="modal-box">
+    <h3>Submit Examination?</h3>
+    <p>You have answered <strong id="modalAnswered"></strong> out of 200 questions.<br>Once submitted, you cannot change your answers.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Go Back</button>
+      <button class="modal-confirm" onclick="confirmSubmit()">Submit Now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CREDENTIALS =====
+const USERS = {
+  "student1":"pass@123","student2":"pass@123","student3":"pass@123",
+  "student4":"pass@123","student5":"pass@123","student6":"pass@123",
+  "student7":"pass@123","student8":"pass@123","student9":"pass@123","student10":"pass@123"
+};
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "admin@ece2024";
+
+// ===== 200 QUESTIONS =====
+const ALL_QUESTIONS = [
+// --- 1. Engineering Mathematics (Q1-20) ---
+{s:"Engineering Mathematics",q:"The rank of a matrix is defined as:",o:["Number of rows","Maximum number of linearly independent rows or columns","Number of columns","Determinant value"],a:1},
+{s:"Engineering Mathematics",q:"If λ is an eigenvalue of matrix A, then the eigenvalue of A² is:",o:["λ","2λ","λ²","1/λ"],a:2},
+{s:"Engineering Mathematics",q:"The order of the differential equation d²y/dx² + 3(dy/dx)³ + 2y = 0 is:",o:["1","2","3","6"],a:1},
+{s:"Engineering Mathematics",q:"The Laplace Transform of e^(at) is:",o:["1/(s-a)","1/(s+a)","a/(s²+a²)","s/(s²+a²)"],a:0},
+{s:"Engineering Mathematics",q:"A function f(x) is said to be even if:",o:["f(-x) = f(x)","f(-x) = -f(x)","f(x+T) = f(x)","f(0) = 0"],a:0},
+{s:"Engineering Mathematics",q:"The Fourier Transform of a rectangular pulse in time domain gives:",o:["Another rectangle","Sinc function","Gaussian function","Impulse train"],a:1},
+{s:"Engineering Mathematics",q:"For a Poisson distribution with mean μ, the variance is:",o:["μ²","√μ","μ","1/μ"],a:2},
+{s:"Engineering Mathematics",q:"Newton-Raphson method converges:",o:["Linearly","Quadratically","Cubically","Does not converge"],a:1},
+{s:"Engineering Mathematics",q:"The residue theorem is related to which topic?",o:["Vector calculus","Complex variables","Probability","Numerical methods"],a:1},
+{s:"Engineering Mathematics",q:"The divergence of a vector field F = xi + yj + zk is:",o:["0","1","2","3"],a:3},
+{s:"Engineering Mathematics",q:"Z-Transform of u[n] (unit step) is:",o:["z/(z-1)","1/(z-1)","z/(z+1)","1/z"],a:0},
+{s:"Engineering Mathematics",q:"The Laplace transform of sin(at) is:",o:["a/(s²+a²)","s/(s²+a²)","a/(s²-a²)","1/(s+a)"],a:0},
+{s:"Engineering Mathematics",q:"Eigenvalues of a symmetric matrix are always:",o:["Complex","Real","Zero","Imaginary"],a:1},
+{s:"Engineering Mathematics",q:"The Fourier series of an odd function contains:",o:["Only cosine terms","Only sine terms","Both sine and cosine","Only constant term"],a:1},
+{s:"Engineering Mathematics",q:"The curl of a gradient is always:",o:["Non-zero","Zero vector","A scalar","Undefined"],a:1},
+{s:"Engineering Mathematics",q:"Gaussian elimination is used to solve:",o:["Differential equations","System of linear equations","Integrals","Eigenvalue problems"],a:1},
+{s:"Engineering Mathematics",q:"The probability that an event does NOT occur is equal to:",o:["P(A)","1 + P(A)","1 − P(A)","P(A)/2"],a:2},
+{s:"Engineering Mathematics",q:"The inverse Laplace transform of 1/s is:",o:["e^t","δ(t)","u(t)","t"],a:2},
+{s:"Engineering Mathematics",q:"Stokes' theorem relates a surface integral to a:",o:["Volume integral","Line integral","Double integral","Scalar field"],a:1},
+{s:"Engineering Mathematics",q:"A matrix is singular if its determinant is:",o:["1","−1","0","∞"],a:2},
+
+// --- 2. Network Theory (Q21-40) ---
+{s:"Network Theory",q:"Ohm's Law states that V = IR, where R is:",o:["Reactance","Resistance","Impedance","Reluctance"],a:1},
+{s:"Network Theory",q:"KVL states that the algebraic sum of voltages in a closed loop is:",o:["Maximum","Minimum","Zero","Infinity"],a:2},
+{s:"Network Theory",q:"KCL states that the sum of currents entering a node equals:",o:["Zero","Sum of currents leaving","Voltage at node","Impedance"],a:1},
+{s:"Network Theory",q:"In Thevenin's theorem, Vth is the:",o:["Short circuit current","Open circuit voltage","Load voltage","Norton voltage"],a:1},
+{s:"Network Theory",q:"Norton's theorem converts a circuit into a current source with:",o:["Series resistance","Parallel resistance","Thevenin voltage","Open circuit"],a:1},
+{s:"Network Theory",q:"The superposition theorem is applicable only to:",o:["Non-linear circuits","Linear circuits","Passive circuits","Active circuits"],a:1},
+{s:"Network Theory",q:"Maximum power is transferred when load resistance equals:",o:["Zero","Source resistance","Double source resistance","Infinity"],a:1},
+{s:"Network Theory",q:"In an RC circuit, the time constant τ is:",o:["R/C","C/R","RC","1/RC"],a:2},
+{s:"Network Theory",q:"At series resonance, the impedance is:",o:["Maximum","Minimum (purely resistive)","Zero","Imaginary"],a:1},
+{s:"Network Theory",q:"At parallel resonance, the impedance is:",o:["Minimum","Maximum (purely resistive)","Zero","Capacitive"],a:1},
+{s:"Network Theory",q:"Nodal analysis is based on:",o:["KVL","KCL","Ohm's Law only","Superposition"],a:1},
+{s:"Network Theory",q:"Mesh analysis is based on:",o:["KCL","KVL","Norton's theorem","Superposition"],a:1},
+{s:"Network Theory",q:"The power factor of a purely resistive circuit is:",o:["0","0.5","1","−1"],a:2},
+{s:"Network Theory",q:"For an RL circuit, the transient current decays as:",o:["Linear","Sinusoidal","Exponential","Quadratic"],a:2},
+{s:"Network Theory",q:"A two-port network's Z-parameters relate port voltages to:",o:["Port currents","Port powers","Port admittances","Impedances only"],a:0},
+{s:"Network Theory",q:"The unit of admittance is:",o:["Ohm","Henry","Siemens (Mho)","Farad"],a:2},
+{s:"Network Theory",q:"In AC analysis, impedance Z is:",o:["R + jX","R − jX","R only","jX only"],a:0},
+{s:"Network Theory",q:"Power factor correction is achieved by adding a:",o:["Resistor","Inductor","Capacitor","Transformer"],a:2},
+{s:"Network Theory",q:"The quality factor Q of a series RLC circuit is:",o:["R/ωL","ωL/R","ωC/R","R/ωC"],a:1},
+{s:"Network Theory",q:"An ideal voltage source has:",o:["Zero internal resistance","Infinite internal resistance","Finite internal resistance","No current capability"],a:0},
+
+// --- 3. Electronic Devices and Circuits (Q41-60) ---
+{s:"Electronic Devices",q:"In a PN junction diode, the barrier potential is formed due to:",o:["Drift current","Diffusion of majority carriers","External voltage","Recombination only"],a:1},
+{s:"Electronic Devices",q:"A Zener diode is primarily used as:",o:["Amplifier","Rectifier","Voltage regulator","Oscillator"],a:2},
+{s:"Electronic Devices",q:"A full-wave bridge rectifier uses how many diodes?",o:["1","2","3","4"],a:3},
+{s:"Electronic Devices",q:"A capacitor filter reduces output ripple by:",o:["Storing charge during peaks","Blocking DC","Amplifying voltage","Clipping negative half"],a:0},
+{s:"Electronic Devices",q:"The transistor configuration with highest current gain is:",o:["CB","CC","CE","All equal"],a:2},
+{s:"Electronic Devices",q:"For an NPN transistor in active region, which condition holds?",o:["VBE reverse biased","VCE = 0","VBE forward, VCB reverse biased","Both junctions forward biased"],a:2},
+{s:"Electronic Devices",q:"The FET is a _____ controlled device:",o:["Current","Voltage","Power","Frequency"],a:1},
+{s:"Electronic Devices",q:"MOSFET operates in enhancement mode when gate voltage is:",o:["Below threshold","Above threshold","Zero","Negative only"],a:1},
+{s:"Electronic Devices",q:"In a common emitter amplifier, the phase shift between input and output is:",o:["0°","90°","180°","360°"],a:2},
+{s:"Electronic Devices",q:"Negative feedback in amplifiers:",o:["Increases gain","Decreases bandwidth","Increases stability and bandwidth","Increases distortion"],a:2},
+{s:"Electronic Devices",q:"An oscillator requires a feedback factor Aβ equal to:",o:["0","< 1","1 (Barkhausen criterion)","∞"],a:2},
+{s:"Electronic Devices",q:"A clipper circuit is used to:",o:["Amplify signals","Clip (limit) voltage levels","Shift DC level","Filter noise"],a:1},
+{s:"Electronic Devices",q:"A clamper circuit is used to:",o:["Clip signal peaks","Shift the DC level of a signal","Amplify signal","Rectify AC"],a:1},
+{s:"Electronic Devices",q:"A linear voltage regulator maintains constant output by:",o:["Switching transistor ON/OFF","Varying series pass transistor resistance","Using a capacitor","Clamping voltage with Zener"],a:1},
+{s:"Electronic Devices",q:"Multistage amplifiers are cascaded to:",o:["Reduce gain","Increase overall voltage gain","Reduce bandwidth","Eliminate feedback"],a:1},
+{s:"Electronic Devices",q:"A class A amplifier conducts for:",o:["Half cycle","Full 360° cycle","180°","Less than 180°"],a:1},
+{s:"Electronic Devices",q:"An LED emits light due to:",o:["Photoelectric effect","Electroluminescence (recombination)","Thermal effect","Magnetic effect"],a:1},
+{s:"Electronic Devices",q:"The ripple factor of a full-wave rectifier is approximately:",o:["1.21","0.48","2.0","0.0"],a:1},
+{s:"Electronic Devices",q:"A phototransistor responds to:",o:["Sound","Light","Heat only","Pressure"],a:1},
+{s:"Electronic Devices",q:"The early effect in BJT refers to:",o:["Increased recombination","Base width modulation","Emitter injection","Avalanche breakdown"],a:1},
+
+// --- 4. Linear Integrated Circuits (Q61-80) ---
+{s:"Linear Integrated Circuits",q:"The ideal op-amp has input impedance:",o:["Zero","Finite","Infinite","1 kΩ"],a:2},
+{s:"Linear Integrated Circuits",q:"The output impedance of an ideal op-amp is:",o:["Infinite","Zero","1 kΩ","100 Ω"],a:1},
+{s:"Linear Integrated Circuits",q:"In an inverting amplifier with Rf = 100kΩ, Rin = 10kΩ, gain is:",o:["10","−10","0.1","100"],a:1},
+{s:"Linear Integrated Circuits",q:"The virtual ground concept in inverting op-amp means:",o:["Input is grounded","Inverting terminal is at 0V (virtually)","Output is zero","Power supply is zero"],a:1},
+{s:"Linear Integrated Circuits",q:"A summing amplifier can be used as a:",o:["Subtractor","DAC","Oscillator","Comparator only"],a:1},
+{s:"Linear Integrated Circuits",q:"The integrator op-amp circuit has a _____ in the feedback path:",o:["Resistor","Inductor","Capacitor","Zener diode"],a:2},
+{s:"Linear Integrated Circuits",q:"A differentiator op-amp circuit has a _____ at the input:",o:["Resistor","Capacitor","Inductor","Transistor"],a:1},
+{s:"Linear Integrated Circuits",q:"A comparator compares two voltages and outputs:",o:["Their sum","Their difference","A HIGH or LOW digital level","Their product"],a:2},
+{s:"Linear Integrated Circuits",q:"The Schmitt trigger has:",o:["Single threshold","Two thresholds (hysteresis)","No threshold","Variable gain"],a:1},
+{s:"Linear Integrated Circuits",q:"An instrumentation amplifier is preferred for:",o:["High gain single-ended signals","Low noise differential signals with high CMRR","Oscillation generation","Power amplification"],a:1},
+{s:"Linear Integrated Circuits",q:"CMRR (Common Mode Rejection Ratio) of an ideal op-amp is:",o:["Zero","Unity","Infinite","−∞ dB"],a:2},
+{s:"Linear Integrated Circuits",q:"A 555 timer in astable mode operates as an:",o:["Monostable multivibrator","Bistable latch","Free-running oscillator","Comparator"],a:2},
+{s:"Linear Integrated Circuits",q:"A 555 timer in monostable mode produces:",o:["Continuous oscillations","A single output pulse for a set duration","Latch output","Analog output"],a:1},
+{s:"Linear Integrated Circuits",q:"An active low-pass filter passes:",o:["High frequencies","Frequencies above cutoff","Frequencies below cutoff","All frequencies equally"],a:2},
+{s:"Linear Integrated Circuits",q:"A precision rectifier uses an op-amp to:",o:["Increase voltage","Rectify very small AC signals accurately","Filter noise","Generate square waves"],a:1},
+{s:"Linear Integrated Circuits",q:"PLL (Phase Locked Loop) is used for:",o:["Amplification","Frequency synthesis and demodulation","Power supply regulation","Filtering only"],a:1},
+{s:"Linear Integrated Circuits",q:"A DAC converts:",o:["AC to DC","Digital code to analog voltage","Analog to digital","Frequency to voltage"],a:1},
+{s:"Linear Integrated Circuits",q:"The slew rate of an op-amp defines:",o:["Maximum input voltage","Maximum rate of change of output voltage (V/μs)","Bandwidth","Input offset"],a:1},
+{s:"Linear Integrated Circuits",q:"A VCO (Voltage Controlled Oscillator) produces output frequency:",o:["Fixed always","Proportional to input voltage","Inversely proportional to supply","Random"],a:1},
+{s:"Linear Integrated Circuits",q:"The non-inverting amplifier gain is:",o:["−Rf/Rin","1 + Rf/Rin","Rf/Rin","−(1+Rf/Rin)"],a:1},
+
+// --- 5. Digital Electronics (Q81-100) ---
+{s:"Digital Electronics",q:"The decimal equivalent of binary 1011 is:",o:["9","10","11","13"],a:2},
+{s:"Digital Electronics",q:"The 2's complement of 0101 is:",o:["1010","1011","0101","1101"],a:1},
+{s:"Digital Electronics",q:"Which gate is called the universal gate?",o:["AND","OR","NAND","XOR"],a:2},
+{s:"Digital Electronics",q:"A K-Map is used for:",o:["Memory design","Simplification of Boolean expressions","Counter design","Arithmetic operations"],a:1},
+{s:"Digital Electronics",q:"A full adder has how many inputs?",o:["1","2","3","4"],a:2},
+{s:"Digital Electronics",q:"A 4-to-1 multiplexer has how many select lines?",o:["1","2","3","4"],a:1},
+{s:"Digital Electronics",q:"An encoder converts:",o:["Binary to octal","One of 2^n inputs to n-bit binary code","n-bit binary to 2^n outputs","Analog to digital"],a:1},
+{s:"Digital Electronics",q:"A D flip-flop is used to:",o:["Divide frequency","Store 1-bit data / delay data by one clock","Add binary numbers","Generate oscillations"],a:1},
+{s:"Digital Electronics",q:"A 4-bit binary ripple counter can count up to:",o:["8","15","16","32"],a:1},
+{s:"Digital Electronics",q:"Which flip-flop avoids the race-around condition?",o:["SR","D","T","JK Master-Slave"],a:3},
+{s:"Digital Electronics",q:"CMOS logic uses which transistors?",o:["Only NPN BJT","Complementary NMOS and PMOS","Only NMOS","Only PMOS"],a:1},
+{s:"Digital Electronics",q:"The XOR gate output is 1 when:",o:["Both inputs are 1","Both inputs are 0","Inputs are different","Inputs are same"],a:2},
+{s:"Digital Electronics",q:"A shift register can be used for:",o:["Arithmetic only","Serial-to-parallel conversion","Oscillation","Memory only"],a:1},
+{s:"Digital Electronics",q:"ROM stores data that is:",o:["Volatile","Non-volatile and pre-programmed","Written by CPU every cycle","Random"],a:1},
+{s:"Digital Electronics",q:"TTL logic levels: Logic HIGH is approximately:",o:["0V","0.8V","2.4V − 5V","−5V"],a:2},
+{s:"Digital Electronics",q:"De Morgan's theorem states: (A·B)' =",o:["A'·B'","A'+B'","A·B","A+B"],a:1},
+{s:"Digital Electronics",q:"A state machine is described using:",o:["Truth tables only","State diagram / state transition table","K-Maps only","Boolean equations only"],a:1},
+{s:"Digital Electronics",q:"Verilog is a:",o:["Programming language","Hardware description language (HDL)","Assembly language","Scripting language"],a:1},
+{s:"Digital Electronics",q:"The number of minterms for a 3-variable Boolean function is:",o:["4","6","8","16"],a:2},
+{s:"Digital Electronics",q:"A demultiplexer routes data from:",o:["Many inputs to one output","One input to one of many outputs","Memory to CPU","Encoder output"],a:1},
+
+// --- 6. Signals and Systems (Q101-120) ---
+{s:"Signals and Systems",q:"The energy of a signal x(t) is defined as:",o:["∫|x(t)|dt","∫|x(t)|²dt","x²(0)","∫x(t)dt"],a:1},
+{s:"Signals and Systems",q:"An LTI system is completely characterized by its:",o:["Transfer function or impulse response","Input signal only","Output signal only","Initial conditions only"],a:0},
+{s:"Signals and Systems",q:"Convolution in time domain corresponds to _____ in frequency domain:",o:["Convolution","Addition","Multiplication","Division"],a:2},
+{s:"Signals and Systems",q:"The Fourier transform of an impulse δ(t) is:",o:["0","1","jω","e^jω"],a:1},
+{s:"Signals and Systems",q:"Nyquist sampling theorem states that sampling rate must be:",o:["Equal to signal frequency","Less than signal frequency","At least twice the highest frequency","Exactly signal frequency"],a:2},
+{s:"Signals and Systems",q:"A causal system produces output only:",o:["Before input","At the same time as input","After input is applied","Randomly"],a:2},
+{s:"Signals and Systems",q:"A system is BIBO stable if:",o:["Output is always zero","Every bounded input produces a bounded output","Input is zero","Output grows exponentially"],a:1},
+{s:"Signals and Systems",q:"The Z-transform is used primarily for:",o:["Continuous-time signals","Discrete-time signals","Analog filters","Electromagnetic waves"],a:1},
+{s:"Signals and Systems",q:"Correlation measures:",o:["Convolution of two signals","Similarity between two signals as a function of lag","Sum of signals","Difference of signals"],a:1},
+{s:"Signals and Systems",q:"The ROC (Region of Convergence) is important for:",o:["Fourier series","Z-transform and Laplace transform","Time-domain analysis","Correlation"],a:1},
+{s:"Signals and Systems",q:"A discrete-time signal is defined only at:",o:["All real values of t","Integer values of n (discrete instants)","Negative values only","Zero"],a:1},
+{s:"Signals and Systems",q:"The step response of a system is the integral of its:",o:["Output","Transfer function","Impulse response","Frequency response"],a:2},
+{s:"Signals and Systems",q:"For a stable system, all poles must lie:",o:["On the jω axis","In the right half of the s-plane","In the left half of the s-plane","At the origin"],a:2},
+{s:"Signals and Systems",q:"Aliasing occurs when the sampling rate is:",o:["Twice the signal frequency","Greater than Nyquist rate","Less than Nyquist rate","Equal to signal frequency"],a:2},
+{s:"Signals and Systems",q:"The Fourier series representation is valid for:",o:["Aperiodic signals","Periodic signals","Random signals","Energy signals only"],a:1},
+{s:"Signals and Systems",q:"The transfer function H(s) of an LTI system is the Laplace transform of:",o:["Output signal","Input signal","Impulse response","Step response"],a:2},
+{s:"Signals and Systems",q:"An even signal satisfies:",o:["x(−t) = −x(t)","x(−t) = x(t)","x(t) = 0 for t < 0","x(t) is periodic"],a:1},
+{s:"Signals and Systems",q:"Power signals have:",o:["Finite energy","Infinite energy but finite average power","Zero power","Finite energy and finite power"],a:1},
+{s:"Signals and Systems",q:"The frequency response H(jω) is obtained by substituting s = jω in:",o:["Impulse response","Transfer function H(s)","Step response","Correlation function"],a:1},
+{s:"Signals and Systems",q:"Linearity property states that for inputs x1 and x2:",o:["T[x1+x2] = T[x1]·T[x2]","T[ax1+bx2] = aT[x1]+bT[x2]","T[x1+x2] = T[x1]+1","T[x1] = T[x2]"],a:1},
+
+// --- 7. Digital Signal Processing (Q121-140) ---
+{s:"Digital Signal Processing",q:"DFT stands for:",o:["Differential Frequency Transform","Discrete Fourier Transform","Digital Filter Technique","Distributed Frequency Transform"],a:1},
+{s:"Digital Signal Processing",q:"FFT is a fast algorithm to compute:",o:["IIR filter","DFT efficiently","Z-transform","Correlation only"],a:1},
+{s:"Digital Signal Processing",q:"Quantization in DSP introduces:",o:["Amplitude error (quantization noise)","Phase shift","Frequency shift","Infinite precision"],a:0},
+{s:"Digital Signal Processing",q:"An FIR filter has:",o:["Feedback","No feedback (non-recursive)","Infinite impulse response","Poles outside unit circle"],a:1},
+{s:"Digital Signal Processing",q:"An IIR filter is characterized by:",o:["No poles","Finite impulse response","Poles and zeros (recursive)","All-zero structure"],a:2},
+{s:"Digital Signal Processing",q:"Circular convolution of two N-point sequences produces:",o:["N-1 point","N point","2N-1 point","2N point"],a:1},
+{s:"Digital Signal Processing",q:"The Hamming window is used in FIR design to:",o:["Increase ripple","Reduce spectral leakage","Increase main lobe width","Eliminate all side lobes"],a:1},
+{s:"Digital Signal Processing",q:"Decimation in DSP means:",o:["Increasing sampling rate","Reducing sampling rate by an integer factor","Adding noise","Interpolating signal"],a:1},
+{s:"Digital Signal Processing",q:"Interpolation in DSP means:",o:["Decreasing sampling rate","Increasing sampling rate by an integer factor","Quantization","Filtering only"],a:1},
+{s:"Digital Signal Processing",q:"A DSP processor typically uses which arithmetic for speed?",o:["Floating point only","Fixed-point and MAC (Multiply-Accumulate)","Integer only","Logarithmic"],a:1},
+{s:"Digital Signal Processing",q:"The Z-transform of a delayed signal x[n−k] is:",o:["z^k X(z)","z^(−k) X(z)","X(z)/k","kX(z)"],a:1},
+{s:"Digital Signal Processing",q:"The region inside the unit circle in Z-plane corresponds to:",o:["Stable poles","Unstable poles","Zeros","Purely imaginary poles"],a:0},
+{s:"Digital Signal Processing",q:"Linear convolution of an M-point and N-point sequence produces:",o:["M+N points","M+N−1 points","MN points","M−N points"],a:1},
+{s:"Digital Signal Processing",q:"A Butterworth filter is characterized by:",o:["Equiripple in passband","Maximally flat frequency response in passband","Chebyshev response","Elliptic response"],a:1},
+{s:"Digital Signal Processing",q:"The number of complex multiplications in direct DFT of N points is:",o:["N","N log N","N²","2N"],a:2},
+{s:"Digital Signal Processing",q:"Overlap-add method is used for:",o:["IIR filter design","Long sequence filtering using FFT","Window design","Decimation"],a:1},
+{s:"Digital Signal Processing",q:"A notch filter is designed to:",o:["Pass all frequencies","Reject a specific frequency","Pass only DC","Act as high-pass filter"],a:1},
+{s:"Digital Signal Processing",q:"The DTFT (Discrete Time Fourier Transform) is the Z-transform evaluated on:",o:["Real axis","Unit circle","Imaginary axis","Entire z-plane"],a:1},
+{s:"Digital Signal Processing",q:"Bilinear transformation is used to convert:",o:["FIR to IIR","Analog filter to digital IIR filter","DFT to FFT","Circular to linear convolution"],a:1},
+{s:"Digital Signal Processing",q:"Spectral leakage in DFT occurs due to:",o:["Quantization","Windowing of finite-length signals","IIR filter","Decimation"],a:1},
+
+// --- 8. Communication Systems (Q141-160) ---
+{s:"Communication Systems",q:"In AM, the modulation index m must be:",o:["Greater than 1","Equal to 2","Between 0 and 1 to avoid over-modulation","Negative"],a:2},
+{s:"Communication Systems",q:"FM is more immune to noise than AM because:",o:["FM uses less bandwidth","FM information is in frequency (noise affects amplitude)","FM has lower power","FM is digital"],a:1},
+{s:"Communication Systems",q:"In PCM, quantization noise is reduced by:",o:["Decreasing number of bits","Increasing number of quantization levels (bits)","Increasing sampling rate only","Using AM instead"],a:1},
+{s:"Communication Systems",q:"The superheterodyne receiver improves selectivity using:",o:["Direct amplification","Conversion to a fixed IF (intermediate frequency)","FM demodulation","Synchronous detection"],a:1},
+{s:"Communication Systems",q:"Shannon's channel capacity formula is:",o:["C = B log2(S/N)","C = B log2(1 + S/N)","C = S/N","C = 2B"],a:1},
+{s:"Communication Systems",q:"In ASK (Amplitude Shift Keying):",o:["Frequency varies with data","Phase varies with data","Amplitude varies with binary data","All parameters vary"],a:2},
+{s:"Communication Systems",q:"QPSK uses how many phase states?",o:["2","4","8","16"],a:1},
+{s:"Communication Systems",q:"In PAM (Pulse Amplitude Modulation), which parameter is varied?",o:["Pulse frequency","Pulse width","Pulse amplitude","Pulse position"],a:2},
+{s:"Communication Systems",q:"Entropy in information theory measures:",o:["Signal power","Average information content / uncertainty","Bandwidth","Noise level"],a:1},
+{s:"Communication Systems",q:"BER (Bit Error Rate) in digital communication should be:",o:["High","As low as possible","Exactly 0.5","Greater than 1"],a:1},
+{s:"Communication Systems",q:"FSK (Frequency Shift Keying) represents digital data by varying:",o:["Amplitude","Phase","Frequency","All three"],a:2},
+{s:"Communication Systems",q:"Hamming code is used for:",o:["Compression","Error detection and correction","Modulation","Encryption"],a:1},
+{s:"Communication Systems",q:"In optical fiber communication, the carrier is:",o:["Radio wave","Microwave","Light (infrared/visible)","Sound wave"],a:2},
+{s:"Communication Systems",q:"Satellite communication uses which frequency bands primarily?",o:["Audio (kHz)","C-band, Ku-band (GHz range)","Optical (THz)","AM broadcast (MHz)"],a:1},
+{s:"Communication Systems",q:"In PWM, the message signal varies the:",o:["Pulse amplitude","Pulse width","Pulse position","Carrier frequency"],a:1},
+{s:"Communication Systems",q:"The bandwidth of an FM signal (Carson's rule) is approximately:",o:["2fm","2(Δf + fm)","Δf only","fm/2"],a:1},
+{s:"Communication Systems",q:"A matched filter maximizes:",o:["Bandwidth","SNR at the sampling instant","Pulse width","Signal power"],a:1},
+{s:"Communication Systems",q:"Coherent detection requires:",o:["No carrier reference","Phase-synchronized local carrier","More bandwidth","Only envelope detection"],a:1},
+{s:"Communication Systems",q:"In spread spectrum, the signal bandwidth is:",o:["Narrowed to save spectrum","Spread wider than necessary for security/interference immunity","Equal to data rate","Reduced by coding"],a:1},
+{s:"Communication Systems",q:"The Nyquist rate for a signal of bandwidth B Hz is:",o:["B samples/sec","2B samples/sec","B/2 samples/sec","4B samples/sec"],a:1},
+
+// --- 9. Electromagnetic Fields (Q161-180) ---
+{s:"Electromagnetic Fields",q:"Coulomb's law gives the force between two charges as:",o:["Directly proportional to distance","Inversely proportional to square of distance","Proportional to sum of charges","Independent of medium"],a:1},
+{s:"Electromagnetic Fields",q:"Electric flux density D is related to electric field E by:",o:["D = E/ε","D = εE","D = E + ε","D = μE"],a:1},
+{s:"Electromagnetic Fields",q:"Gauss's law relates electric flux to:",o:["Magnetic flux","Enclosed charge","Current density","Resistance"],a:1},
+{s:"Electromagnetic Fields",q:"The unit of electric field intensity is:",o:["V·m","V/m","A/m","C/m²"],a:1},
+{s:"Electromagnetic Fields",q:"Ampere's law relates magnetic field H to:",o:["Charge enclosed","Electric flux","Enclosed current (J)","Electric potential"],a:2},
+{s:"Electromagnetic Fields",q:"Faraday's law states that induced EMF equals:",o:["Rate of change of charge","Rate of change of magnetic flux (−dΦ/dt)","Magnetic field strength","Current × resistance"],a:1},
+{s:"Electromagnetic Fields",q:"Maxwell's displacement current term is:",o:["∂B/∂t","∂D/∂t","∇×H","∇·E"],a:1},
+{s:"Electromagnetic Fields",q:"The wave equation in free space relates E to:",o:["Current","Charge only","Both E and its second derivatives","Resistance"],a:2},
+{s:"Electromagnetic Fields",q:"The reflection coefficient Γ of a transmission line is:",o:["(ZL−Z0)/(ZL+Z0)","ZL/Z0","Z0/ZL","ZL+Z0"],a:0},
+{s:"Electromagnetic Fields",q:"Standing Wave Ratio (SWR) = 1 means:",o:["Total reflection","Total absorption (matched load, no reflection)","Half reflection","Resonance only"],a:1},
+{s:"Electromagnetic Fields",q:"The intrinsic impedance of free space is approximately:",o:["50 Ω","120π Ω ≈ 377 Ω","75 Ω","600 Ω"],a:1},
+{s:"Electromagnetic Fields",q:"In a plane wave, E and H fields are:",o:["Parallel to each other","Perpendicular to each other and to direction of propagation","Anti-parallel","Random"],a:1},
+{s:"Electromagnetic Fields",q:"The boundary condition at a perfect conductor surface for E is:",o:["Tangential E = 0","Normal E = 0","E is continuous","E is maximum"],a:0},
+{s:"Electromagnetic Fields",q:"The directivity of an antenna describes:",o:["Its physical size","Ability to focus radiation in a particular direction","Input impedance","Noise figure"],a:1},
+{s:"Electromagnetic Fields",q:"The skin depth δ in a conductor decreases with:",o:["Decreasing frequency","Increasing frequency","Decreasing conductivity","Increasing resistivity"],a:1},
+{s:"Electromagnetic Fields",q:"Poynting vector S = E × H represents:",o:["Charge density","Power flow density (W/m²)","Magnetic flux","Current density"],a:1},
+{s:"Electromagnetic Fields",q:"Gradient of a scalar field gives a:",o:["Scalar","Vector pointing in direction of maximum increase","Curl","Divergence"],a:1},
+{s:"Electromagnetic Fields",q:"The divergence of B (magnetic flux density) is always:",o:["Infinite","Non-zero","Zero (no magnetic monopoles)","Equal to μ₀"],a:2},
+{s:"Electromagnetic Fields",q:"For a lossless transmission line, the characteristic impedance Z₀ =",o:["√(R/G)","√(L/C)","√(LC)","L/C"],a:1},
+{s:"Electromagnetic Fields",q:"The velocity of EM wave in free space is approximately:",o:["3×10⁶ m/s","3×10⁸ m/s","3×10¹⁰ m/s","3×10⁴ m/s"],a:1},
+
+// --- 10. Microprocessors and Microcontrollers (Q181-200) ---
+{s:"Microprocessors",q:"The 8085 microprocessor has a ___-bit data bus:",o:["4","8","16","32"],a:1},
+{s:"Microprocessors",q:"The 8086 microprocessor has a ___-bit data bus:",o:["8","12","16","32"],a:2},
+{s:"Microprocessors",q:"In 8085, the register pair used as a stack pointer alternative for HL is:",o:["BC","DE","HL","SP"],a:2},
+{s:"Microprocessors",q:"Immediate addressing mode means the operand is:",o:["In a register","In memory","Directly in the instruction itself","At a computed address"],a:2},
+{s:"Microprocessors",q:"The 8085 instruction MOV A, B means:",o:["Move B to memory","Move A to B","Move contents of B to A","Move B to stack"],a:2},
+{s:"Microprocessors",q:"An interrupt in a microprocessor is:",o:["A software bug","A hardware or software signal that suspends current execution","A type of register","A memory location"],a:1},
+{s:"Microprocessors",q:"The 8051 microcontroller has ___-bit CPU:",o:["4","8","16","32"],a:1},
+{s:"Microprocessors",q:"In 8051, the DPTR register is used for:",o:["Stack operations","16-bit data pointer for external memory access","Interrupt handling","Timer control"],a:1},
+{s:"Microprocessors",q:"The ARM processor uses which instruction set architecture?",o:["CISC","RISC","VLIW","Stack-based"],a:1},
+{s:"Microprocessors",q:"In embedded C, a variable declared as 'volatile' means:",o:["It is constant","The compiler must not optimize it away (can change outside program flow)","It is stored in ROM","It is private"],a:1},
+{s:"Microprocessors",q:"The Arduino Uno is based on which microcontroller?",o:["ATmega328P","STM32","ESP32","PIC16F877"],a:0},
+{s:"Microprocessors",q:"ESP32 supports which wireless protocols?",o:["Only Bluetooth","Only Wi-Fi","Both Wi-Fi and Bluetooth","Only ZigBee"],a:2},
+{s:"Microprocessors",q:"A sensor interface circuit typically requires which component for signal conditioning?",o:["Only a resistor","Op-amp or instrumentation amplifier","Only a capacitor","A transformer"],a:1},
+{s:"Microprocessors",q:"Memory-mapped I/O means:",o:["I/O devices use separate address space","I/O devices share the same address space as memory","I/O devices are in ROM","I/O devices use DMA only"],a:1},
+{s:"Microprocessors",q:"The SPI protocol uses how many wires (minimum for full duplex)?",o:["2","3","4","8"],a:2},
+{s:"Microprocessors",q:"I²C bus uses how many lines?",o:["1","2 (SDA and SCL)","4","8"],a:1},
+{s:"Microprocessors",q:"Assembly language is specific to:",o:["All processors","A particular processor/architecture","Operating system","Programming language"],a:1},
+{s:"Microprocessors",q:"In 8085, the program counter (PC) holds:",o:["Current data being processed","Address of the next instruction to be fetched","Stack top address","Interrupt vector"],a:1},
+{s:"Microprocessors",q:"DMA (Direct Memory Access) allows:",o:["CPU to control all transfers","Peripherals to transfer data without CPU intervention","Cache to bypass RAM","ROM to write to RAM"],a:1},
+{s:"Microprocessors",q:"The Harvard architecture differs from Von Neumann in that it has:",o:["Slower speed","Separate instruction and data memory buses","Only one bus","No cache"],a:1}
+];
+
+// ===== STATE =====
+let currentUser = "";
+let answers = [];
+let currentQ = 0;
+let timerInterval = null;
+let timeLeft = 200 * 60;
+let submittedAt = null;
+
+// ===== HELPERS =====
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function pad(n){return String(n).padStart(2,'0');}
+function formatTime(sec){
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function formatDateTime(ts){
+  const d=new Date(ts);
+  return d.toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short',year:'numeric'});
+}
+
+// ===== LOGIN =====
+async function doLogin(){
+  const u=document.getElementById('uname').value.trim().toLowerCase();
+  const p=document.getElementById('pwd').value;
+  const err=document.getElementById('loginErr');
+  err.textContent='';
+  if(u===ADMIN_USER && p===ADMIN_PASS){currentUser='admin';showAdminDashboard();return;}
+  if(!USERS[u]){err.textContent='Username not found.';return;}
+  if(USERS[u]!==p){err.textContent='Incorrect password.';return;}
+  err.textContent='Checking status…';
+  try {
+    const already = await window._fbCheckSubmitted(u);
+    if(already){err.textContent='You have already submitted the exam.';return;}
+  } catch(e){err.textContent='Connection error. Please check internet.';return;}
+  err.textContent='';
+  currentUser=u;
+  startExam();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('loginScreen').classList.contains('active')) doLogin();
+  }
+});
+
+// ===== EXAM =====
+function startExam(){
+  answers=new Array(200).fill(-1);
+  currentQ=0;
+  timeLeft=200*60;
+  document.getElementById('topbarUser').textContent=currentUser.toUpperCase();
+  show('quizScreen');
+  buildDots();
+  renderQ();
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    const el=document.getElementById('topbarTimer');
+    el.textContent=formatTime(timeLeft);
+    if(timeLeft<=600) el.classList.add('warning');
+    if(timeLeft<=0){clearInterval(timerInterval);confirmSubmit();}
+  },1000);
+}
+
+function buildDots(){
+  const container=document.getElementById('navDots');
+  container.innerHTML='';
+  for(let i=0;i<200;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' current':'');
+    d.title=`Q${i+1}`;
+    d.onclick=(()=>{const idx=i;return()=>jumpTo(idx);})();
+    container.appendChild(d);
+  }
+}
+
+function updateDots(){
+  const dots=document.querySelectorAll('.dot');
+  dots.forEach((d,i)=>{
+    d.className='dot';
+    if(answers[i]!==-1) d.classList.add('answered');
+    if(i===currentQ) d.classList.add('current');
+  });
+}
+
+const SECTIONS=[
+  {name:"Engineering Mathematics",start:0},
+  {name:"Network Theory",start:20},
+  {name:"Electronic Devices & Circuits",start:40},
+  {name:"Linear Integrated Circuits",start:60},
+  {name:"Digital Electronics",start:80},
+  {name:"Signals and Systems",start:100},
+  {name:"Digital Signal Processing",start:120},
+  {name:"Communication Systems",start:140},
+  {name:"Electromagnetic Fields",start:160},
+  {name:"Microprocessors & Microcontrollers",start:180}
+];
+
+function getSectionName(idx){
+  for(let i=SECTIONS.length-1;i>=0;i--){
+    if(idx>=SECTIONS[i].start) return `Section ${i+1} — ${SECTIONS[i].name}`;
+  }
+  return '';
+}
+
+function renderQ(){
+  const q=ALL_QUESTIONS[currentQ];
+  const letters=['A','B','C','D'];
+  document.getElementById('sectionHeader').textContent=getSectionName(currentQ);
+  document.getElementById('navQNum').textContent=currentQ+1;
+  document.getElementById('navAnswered').textContent=answers.filter(a=>a!==-1).length;
+  document.getElementById('quizProgress').style.width=((currentQ+1)/200*100)+'%';
+
+  let html=`<div class="q-card">
+    <div class="q-meta">Q${currentQ+1} / 200</div>
+    <div class="q-text">${q.q}</div>`;
+  q.o.forEach((opt,i)=>{
+    html+=`<div class="opt${answers[currentQ]===i?' sel':''}" onclick="selectOpt(${i})">
+      <span class="opt-letter">${letters[i]}</span>${opt}</div>`;
+  });
+  html+='</div>';
+  document.getElementById('questionArea').innerHTML=html;
+
+  document.getElementById('prevBtn').style.visibility=currentQ>0?'visible':'hidden';
+  const nb=document.getElementById('nextBtn');
+  if(currentQ===199){nb.style.display='none';document.querySelector('.btn-submit-final').style.display='inline-block';}
+  else{nb.style.display='inline-block';const sf=document.querySelector('.btn-submit-final');if(sf)sf.style.display='none';}
+  updateDots();
+  window.scrollTo(0,0);
+}
+
+function selectOpt(i){
+  answers[currentQ]=i;
+  renderQ();
+}
+
+function jumpTo(idx){currentQ=idx;renderQ();}
+function prevQ(){if(currentQ>0){currentQ--;renderQ();}}
+function nextQ(){
+  if(answers[currentQ]===-1){
+    document.querySelectorAll('.opt').forEach(o=>{o.style.borderColor='#ef4444';});
+    setTimeout(()=>document.querySelectorAll('.opt').forEach(o=>{o.style.borderColor='';}),600);
+    return;
+  }
+  if(currentQ<199){currentQ++;renderQ();}
+}
+
+function openSubmitModal(){
+  const answered=answers.filter(a=>a!==-1).length;
+  document.getElementById('modalAnswered').textContent=answered;
+  document.getElementById('submitModal').style.display='flex';
+}
+function closeModal(){document.getElementById('submitModal').style.display='none';}
+
+function confirmSubmit(){
+  clearInterval(timerInterval);
+  document.getElementById('submitModal').style.display='none';
+  submittedAt=Date.now();
+  const correct=ALL_QUESTIONS.reduce((acc,q,i)=>acc+(answers[i]===q.a?1:0),0);
+  const correctFlags=ALL_QUESTIONS.map((q,i)=>answers[i]===q.a);
+  const sectionScores={};
+  SECTIONS.forEach(sec=>{
+    let c=0;
+    for(let i=sec.start;i<sec.start+20;i++) if(answers[i]===ALL_QUESTIONS[i].a) c++;
+    sectionScores[sec.name]=c;
+  });
+  const result={
+    username:currentUser,
+    submittedAt:submittedAt,
+    answered:answers.filter(a=>a!==-1).length,
+    correct:correct,
+    total:200,
+    pct:Math.round(correct/200*100),
+    sectionScores:sectionScores,
+    violations: window._pendingViolations||0,
+    answers:[...answers],
+    correctFlags:correctFlags
+  };
+  // Save to Firebase (fire and forget — don't block UI)
+  window._fbSaveResult(result).catch(e=>console.error('Firebase save error',e));
+
+  document.getElementById('subName').textContent=currentUser.toUpperCase();
+  document.getElementById('subAttempted').textContent=result.answered+' / 200';
+  document.getElementById('subTime').textContent=formatDateTime(submittedAt);
+  show('submittedScreen');
+}
+
+// ===== ADMIN =====
+async function showAdminDashboard(){
+  show('adminScreen');
+  document.getElementById('resultsTableBody').innerHTML='<div class="empty-state">⏳ Loading results from database…</div>';
+  document.getElementById('statAppeared').textContent='…';
+  document.getElementById('statHighest').textContent='…';
+  document.getElementById('statAvg').textContent='…';
+  document.getElementById('statPass').textContent='…';
+
+  let allResults=[];
+  try{ allResults = await window._fbLoadAllResults(); }
+  catch(e){
+    document.getElementById('resultsTableBody').innerHTML='<div class="empty-state">❌ Failed to load. Check Firebase config or internet.</div>';
+    return;
+  }
+
+  const n=allResults.length;
+  document.getElementById('statAppeared').textContent=n;
+  document.getElementById('tableDate').textContent='Exam Date: '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+  if(n===0){
+    document.getElementById('statHighest').textContent='—';
+    document.getElementById('statAvg').textContent='—';
+    document.getElementById('statPass').textContent='—';
+    document.getElementById('resultsTableBody').innerHTML='<div class="empty-state">No submissions yet.</div>';
+    return;
+  }
+
+  const sorted=[...allResults].sort((a,b)=>b.correct-a.correct);
+  document.getElementById('statHighest').textContent=sorted[0].correct+'/200';
+  const avg=Math.round(allResults.reduce((s,r)=>s+r.correct,0)/n);
+  document.getElementById('statAvg').textContent=avg+'/200';
+  const passed=allResults.filter(r=>r.pct>=50).length;
+  document.getElementById('statPass').textContent=Math.round(passed/n*100)+'%';
+
+  let html=`<table><thead><tr>
+    <th>Rank</th><th>Student</th><th>Score</th><th>%</th><th>Grade</th><th>Violations</th><th>Submitted</th><th>Details</th>
+  </tr></thead><tbody>`;
+  sorted.forEach((r,i)=>{
+    const rank=i+1;
+    const rankClass=rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other';
+    const pct=r.pct;
+    const grade=pct>=75?'A':pct>=60?'B':pct>=50?'C':'D';
+    const gradeClass=grade==='A'?'grade-a':grade==='B'?'grade-b':grade==='C'?'grade-c':'grade-d';
+    const barColor=pct>=75?'#22c55e':pct>=50?'#60a5fa':'#ef4444';
+    const viol=r.violations||0;
+    html+=`<tr>
+      <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td style="font-weight:500;color:var(--text)">${r.username.toUpperCase()}</td>
+      <td>${r.correct}/200 <span class="score-bar-wrap"><span class="score-bar-fill" style="width:${pct}%;background:${barColor}"></span></span></td>
+      <td>${pct}%</td>
+      <td><span class="grade-badge ${gradeClass}">${grade}</span></td>
+      <td>${viol>0?`<span class="violation-tag">⚠ ${viol}</span>`:'<span style="color:var(--text3);font-size:12px">Clean</span>'}</td>
+      <td style="font-size:12px">${formatDateTime(r.submittedAt)}</td>
+      <td><button class="btn-detail" onclick="showStudentDetail('${r.username}')">View →</button></td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('resultsTableBody').innerHTML=html;
+}
+
+async function showStudentDetail(username){
+  const overlay=document.getElementById('detailOverlay');
+  overlay.style.display='flex';
+  document.getElementById('detailBody').innerHTML='<div style="text-align:center;padding:3rem;color:var(--text2)">⏳ Loading…</div>';
+  document.getElementById('detailTitle').textContent=username.toUpperCase()+' — Answer Breakdown';
+
+  const data = await window._fbLoadAnswers(username);
+  if(!data){document.getElementById('detailBody').innerHTML='<p style="color:var(--text2);padding:2rem">No answer data found.</p>';return;}
+
+  const letters=['A','B','C','D'];
+  let html='';
+
+  // Section summaries first
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:1.5rem;">';
+  SECTIONS.forEach(sec=>{
+    let c=0;
+    for(let i=sec.start;i<sec.start+20;i++) if(data.correct[i]) c++;
+    const pct=Math.round(c/20*100);
+    const col=pct>=70?'var(--green)':pct>=40?'#fbbf24':'var(--red)';
+    html+=`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">${sec.name}</div>
+      <div style="font-size:18px;font-weight:600;color:${col}">${c}/20 <span style="font-size:12px;font-weight:400;color:var(--text3)">(${pct}%)</span></div>
+    </div>`;
+  });
+  html+='</div>';
+
+  // Per-question table
+  html+=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr>
+    <th style="padding:8px 10px;text-align:left;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500">#</th>
+    <th style="padding:8px 10px;text-align:left;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500">Question</th>
+    <th style="padding:8px 10px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500">Student's Answer</th>
+    <th style="padding:8px 10px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500">Correct Answer</th>
+    <th style="padding:8px 10px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500">Result</th>
+  </tr></thead><tbody>`;
+
+  ALL_QUESTIONS.forEach((q,i)=>{
+    const chosen=data.answers[i];
+    const isCorrect=data.correct[i];
+    const rowBg=isCorrect?'rgba(34,197,94,0.04)':'rgba(239,68,68,0.04)';
+    const resultTag=isCorrect
+      ?'<span style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.25);padding:2px 8px;border-radius:99px;font-size:10px">✓ Correct</span>'
+      :'<span style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);padding:2px 8px;border-radius:99px;font-size:10px">✗ Wrong</span>';
+    const chosenText=chosen===-1?'<em style="color:var(--text3)">Not answered</em>':`<span style="${!isCorrect?'color:#ef4444':''}">${letters[chosen]}. ${q.o[chosen]}</span>`;
+    html+=`<tr style="background:${rowBg};border-bottom:1px solid var(--border)">
+      <td style="padding:8px 10px;color:var(--text3);font-family:'DM Mono',monospace">${i+1}</td>
+      <td style="padding:8px 10px;color:var(--text);line-height:1.4;max-width:280px">${q.q}</td>
+      <td style="padding:8px 10px">${chosenText}</td>
+      <td style="padding:8px 10px;color:#22c55e">${letters[q.a]}. ${q.o[q.a]}</td>
+      <td style="padding:8px 10px">${resultTag}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('detailBody').innerHTML=html;
+}
+
+function doLogout(){
+  currentUser='';
+  document.getElementById('uname').value='';
+  document.getElementById('pwd').value='';
+  document.getElementById('loginErr').textContent='';
+  show('loginScreen');
+}
+
+// nav bar submit button
+document.addEventListener('DOMContentLoaded',()=>{
+  const nb=document.getElementById('nextBtn').parentElement;
+  const sb=document.createElement('button');
+  sb.className='btn-nav btn-submit-final';
+  sb.textContent='Submit Exam';
+  sb.style.display='none';
+  sb.onclick=openSubmitModal;
+  nb.appendChild(sb);
+});
+
+
+let violationCount = 0;
+let examActive = false;
+let fsWarningShown = false;
+
+function isFullscreen(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
+}
+
+function enterFullscreen(){
+  const el = document.documentElement;
+  if(el.requestFullscreen) el.requestFullscreen();
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if(el.mozRequestFullScreen) el.mozRequestFullScreen();
+  else if(el.msRequestFullscreen) el.msRequestFullscreen();
+}
+
+function exitFullscreenAPI(){
+  if(document.exitFullscreen) document.exitFullscreen();
+  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  else if(document.mozCancelFullScreen) document.mozCancelFullScreen();
+  else if(document.msExitFullscreen) document.msExitFullscreen();
+}
+
+// Called when fullscreen state changes
+function onFullscreenChange(){
+  if(!examActive) return;
+  if(!isFullscreen()){
+    document.getElementById('fsGate').style.display='flex';
+    clearInterval(timerInterval); // pause timer while out of fullscreen
+  } else {
+    document.getElementById('fsGate').style.display='none';
+    // resume timer
+    startTimer();
+  }
+}
+
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+document.addEventListener('mozfullscreenchange', onFullscreenChange);
+document.addEventListener('MSFullscreenChange', onFullscreenChange);
+
+// Tab switch / visibility detection
+document.addEventListener('visibilitychange', ()=>{
+  if(!examActive) return;
+  if(document.hidden){
+    violationCount++;
+    // store running count in sessionStorage so it survives tab switch
+    sessionStorage.setItem('sb_violations_'+currentUser, violationCount);
+  } else {
+    // came back - show warning
+    document.getElementById('violCountMsg').textContent = `Violation #${violationCount} recorded. ${violationCount>=3?'⚠️ Multiple violations will be flagged for the administrator.':''}`;
+    document.getElementById('violationOverlay').style.display='flex';
+  }
+});
+
+// Disable right-click
+document.addEventListener('contextmenu', e=>{ if(examActive) e.preventDefault(); });
+
+// Disable common copy/inspect shortcuts during exam
+document.addEventListener('keydown', e=>{
+  if(!examActive) return;
+  if((e.ctrlKey||e.metaKey) && ['c','v','u','s','a','p'].includes(e.key.toLowerCase())) e.preventDefault();
+  if(e.key==='F12'||e.key==='PrintScreen') e.preventDefault();
+  if(e.altKey && e.key==='Tab') e.preventDefault();
+});
+
+function resumeFromViolation(){
+  document.getElementById('violationOverlay').style.display='none';
+  // If fullscreen was also exited, show fsGate
+  if(!isFullscreen()){
+    document.getElementById('fsGate').style.display='flex';
+  }
+}
+
+// Override startExam to add camera + fullscreen + anti-cheat activation
+const _origStartExam = startExam;
+function startExam(){
+  // startCamera will call _launchExam after permission granted
+  startCamera();
+}
+
+// Override confirmSubmit to stop camera, exit fullscreen, save violations to Firebase
+const _origConfirmSubmit = confirmSubmit;
+function confirmSubmit(){
+  examActive = false;
+  exitFullscreenAPI();
+  stopCamera();
+  hideWatermark();
+  const pendingViolations = violationCount;
+  sessionStorage.removeItem('sb_violations_'+currentUser);
+  // Call the base confirmSubmit which saves to Firebase
+  // but patch violations into the result first via a tiny hook
+  window._pendingViolations = pendingViolations;
+  _origConfirmSubmit();
+}
+
+// ===== WATERMARK =====
+function generateSessionID(username){
+  // deterministic 8-digit number from username + date
+  let hash = 0;
+  const seed = username + new Date().toDateString();
+  for(let i=0;i<seed.length;i++){hash=((hash<<5)-hash)+seed.charCodeAt(i);hash|=0;}
+  return String(Math.abs(hash)).padStart(8,'0').slice(0,8);
+}
+
+function drawWatermark(username){
+  const sessionID = generateSessionID(username);
+  const text = `${username.toUpperCase()}  ${sessionID}`;
+  const canvas = document.getElementById('wmCanvas');
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth+'px';
+  canvas.style.height = window.innerHeight+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+  ctx.font = "bold 16px 'DM Mono', monospace";
+  ctx.fillStyle = '#c9a84c';
+  ctx.rotate(-Math.PI/6);
+  const spacing = 220;
+  const rowSpacing = 90;
+  const diag = Math.sqrt(window.innerWidth**2+window.innerHeight**2);
+  for(let y=-diag;y<diag*2;y+=rowSpacing){
+    for(let x=-diag;x<diag*2;x+=spacing){
+      ctx.fillText(text, x, y);
+    }
+  }
+}
+
+function showWatermark(username){
+  document.getElementById('watermark').style.display='block';
+  drawWatermark(username);
+}
+
+function hideWatermark(){
+  document.getElementById('watermark').style.display='none';
+}
+
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('watermark').style.display==='block' && currentUser){
+    drawWatermark(currentUser);
+  }
+});
+
+// ===== CAMERA =====
+let camStream = null;
+
+async function startCamera(){
+  document.getElementById('camDeniedGate').style.display='none';
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({video:{width:160,height:120,facingMode:'user'},audio:false});
+    const video = document.getElementById('camVideo');
+    video.srcObject = camStream;
+    document.getElementById('camWidget').style.display='block';
+    // proceed with exam now that camera is granted
+    _launchExam();
+  } catch(err){
+    // Camera denied or not available
+    document.getElementById('camDeniedGate').style.display='flex';
+  }
+}
+
+function stopCamera(){
+  if(camStream){
+    camStream.getTracks().forEach(t=>t.stop());
+    camStream=null;
+  }
+  document.getElementById('camWidget').style.display='none';
+}
+
+// Separate the actual exam launch so camera can gate it
+function _launchExam(){
+  violationCount = parseInt(sessionStorage.getItem('sb_violations_'+currentUser)||'0');
+  answers=new Array(200).fill(-1);
+  currentQ=0;
+  timeLeft=200*60;
+  document.getElementById('topbarUser').textContent=currentUser.toUpperCase();
+  showWatermark(currentUser);
+  show('quizScreen');
+  buildDots();
+  renderQ();
+  startTimer();
+  examActive = true;
+  enterFullscreen();
+}
+
+</script>
+</body>
+</html>
