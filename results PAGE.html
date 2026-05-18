@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industry 5.0 Scholarship — Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --gold:#D4A843;--gold2:#F0C96A;--gold3:rgba(212,168,67,0.12);
+  --bg:#06080F;--card:#0F1422;--card2:#111827;
+  --pass:#34D399;--fail:#F87171;--absent:#FBBF24;
+  --text:#F1F3F9;--muted:#4A5268;--sub:#8892AA;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;overflow-x:hidden;}
+
+/* BG */
+.bg-art{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(212,168,67,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(212,168,67,0.04) 1px,transparent 1px);background-size:60px 60px;}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);}
+.orb1{width:600px;height:600px;top:-200px;left:50%;transform:translateX(-50%);background:radial-gradient(circle,#D4A843,transparent 70%);opacity:.13;}
+.orb2{width:400px;height:400px;bottom:-100px;left:-100px;background:radial-gradient(circle,#1a3a6e,transparent 70%);opacity:.2;}
+.orb3{width:300px;height:300px;bottom:100px;right:-80px;background:radial-gradient(circle,#2d1a5e,transparent 70%);opacity:.18;}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ===== LOGIN SCREEN ===== */
+#loginScreen{align-items:center;justify-content:center;padding:2rem;}
+.login-wrap{width:100%;max-width:400px;position:relative;z-index:2;}
+.login-top{text-align:center;margin-bottom:2rem;}
+.crown{font-size:36px;display:block;margin-bottom:1rem;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+.login-badge{display:inline-block;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:500;border:1px solid rgba(212,168,67,0.3);padding:5px 16px;border-radius:99px;background:var(--gold3);margin-bottom:1.2rem;}
+.login-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.login-title em{font-style:italic;color:var(--gold);}
+.login-sub{font-size:13px;color:var(--sub);}
+.login-card{background:var(--card);border:1px solid var(--border2);border-radius:18px;padding:2rem;}
+.field{margin-bottom:1.1rem;}
+.field label{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sub);margin-bottom:8px;font-weight:500;}
+.field input{
+  width:100%;background:#080b12;border:1px solid var(--border2);
+  border-radius:10px;padding:12px 14px;font-size:14px;
+  color:var(--text);font-family:'Outfit',sans-serif;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,0.1);}
+.field input::placeholder{color:var(--muted);}
+.btn-login{
+  width:100%;padding:13px;background:var(--gold);color:#06080F;
+  border:none;border-radius:10px;font-size:14px;font-weight:600;
+  font-family:'Outfit',sans-serif;cursor:pointer;letter-spacing:.5px;
+  transition:background .2s,transform .1s;margin-top:.25rem;
+}
+.btn-login:hover{background:var(--gold2);}
+.btn-login:active{transform:scale(0.98);}
+.err{font-size:13px;color:var(--fail);text-align:center;margin-top:10px;min-height:20px;}
+
+/* ===== RESULT SCREEN ===== */
+#resultScreen{align-items:center;justify-content:center;padding:2rem;}
+.result-wrap{width:100%;max-width:480px;position:relative;z-index:2;}
+
+/* greeting */
+.greeting{text-align:center;margin-bottom:2rem;}
+.greet-crown{font-size:32px;display:block;margin-bottom:.75rem;}
+.greet-name{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;}
+.greet-name em{font-style:italic;color:var(--gold);}
+.greet-sub{font-size:13px;color:var(--sub);}
+
+/* big score card */
+.score-card{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:20px;padding:2.5rem 2rem;text-align:center;
+  margin-bottom:14px;position:relative;overflow:hidden;
+  animation:popIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+.score-card.pass-card{border-color:rgba(212,168,67,0.3);box-shadow:0 0 60px rgba(212,168,67,0.08);}
+.score-card.fail-card{border-color:rgba(248,113,113,0.2);box-shadow:0 0 40px rgba(248,113,113,0.05);}
+.score-card.absent-card{border-color:rgba(251,191,36,0.2);}
+.score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;}
+.pass-card::before{background:linear-gradient(90deg,transparent 10%,var(--gold) 50%,transparent 90%);}
+.fail-card::before{background:linear-gradient(90deg,transparent 10%,var(--fail) 50%,transparent 90%);}
+.absent-card::before{background:linear-gradient(90deg,transparent 10%,var(--absent) 50%,transparent 90%);}
+@keyframes popIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:none;}}
+
+.score-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+.score-big{font-family:'Playfair Display',serif;font-size:80px;font-weight:700;line-height:1;margin-bottom:.25rem;}
+.pass-card .score-big{color:var(--gold);}
+.fail-card .score-big{color:var(--fail);}
+.absent-card .score-big{color:var(--absent);}
+.score-total{font-size:16px;color:var(--sub);font-family:'DM Mono',monospace;margin-bottom:1.5rem;}
+.status-big{display:inline-flex;align-items:center;gap:8px;padding:8px 24px;border-radius:99px;font-size:14px;font-weight:600;letter-spacing:.5px;}
+.status-pass{background:rgba(52,211,153,0.12);color:var(--pass);border:1px solid rgba(52,211,153,0.25);}
+.status-fail{background:rgba(248,113,113,0.12);color:var(--fail);border:1px solid rgba(248,113,113,0.25);}
+.status-absent{background:rgba(251,191,36,0.12);color:var(--absent);border:1px solid rgba(251,191,36,0.25);}
+
+/* detail row */
+.detail-row{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.25rem 1.5rem;
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:1rem;text-align:center;margin-bottom:14px;
+  animation:popIn .5s cubic-bezier(.22,1,.36,1) .1s both;
+}
+.detail-item .d-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);}
+.detail-item .d-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+
+/* progress bar */
+.progress-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.25rem 1.5rem;
+  animation:popIn .5s cubic-bezier(.22,1,.36,1) .18s both;
+}
+.prog-top{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:10px;}
+.prog-track{height:8px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:99px;transition:width 1.4s cubic-bezier(.4,0,.2,1);}
+.fill-gold{background:linear-gradient(90deg,#c9943a,#F0C96A);}
+.fill-pass{background:linear-gradient(90deg,#059669,#34D399);}
+.fill-fail{background:linear-gradient(90deg,#7f1d1d,#F87171);}
+.prog-mark{margin-top:8px;font-size:11px;color:var(--muted);text-align:right;font-family:'DM Mono',monospace;}
+
+/* message card */
+.msg-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.25rem 1.5rem;text-align:center;
+  font-size:14px;line-height:1.6;color:var(--sub);
+  animation:popIn .5s cubic-bezier(.22,1,.36,1) .26s both;
+}
+.msg-card.msg-pass{border-color:rgba(212,168,67,0.15);color:rgba(212,168,67,0.8);}
+.msg-card.msg-fail{border-color:rgba(248,113,113,0.15);color:rgba(248,113,113,0.75);}
+
+/* logout */
+.logout-btn{
+  width:100%;margin-top:14px;padding:11px;
+  background:transparent;border:1px solid var(--border2);
+  color:var(--sub);border-radius:10px;font-size:13px;
+  font-family:'Outfit',sans-serif;cursor:pointer;
+  transition:background .15s,color .15s;
+  animation:popIn .5s cubic-bezier(.22,1,.36,1) .32s both;
+}
+.logout-btn:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+
+footer{position:relative;z-index:2;text-align:center;padding:2rem 1.5rem;font-size:12px;color:var(--muted);}
+footer span{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="bg-art">
+  <div class="grid-lines"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-top">
+      <span class="crown">🏭</span>
+      <div class="login-badge">Industry 5.0 Scholarship</div>
+      <div class="login-title">Your <em>Result</em></div>
+      <div class="login-sub">Sign in to view your score</div>
+    </div>
+    <div class="login-card">
+      <div class="field">
+        <label for="uname">Username</label>
+        <input type="text" id="uname" placeholder="Enter your username" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="pwd">Password</label>
+        <input type="password" id="pwd" placeholder="Enter your password" />
+      </div>
+      <button class="btn-login" onclick="doLogin()">View My Result</button>
+      <div class="err" id="errMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="resultScreen" class="screen">
+  <div class="result-wrap">
+    <div class="greeting">
+      <span class="greet-crown" id="greetIcon"></span>
+      <div class="greet-name" id="greetName"></div>
+      <div class="greet-sub">Industry 5.0 Scholarship</div>
+    </div>
+
+    <div class="score-card" id="scoreCard">
+      <div class="score-label">Your Score</div>
+      <div class="score-big" id="scoreBig"></div>
+      <div class="score-total">out of 200</div>
+      <div class="status-big" id="statusBig"></div>
+    </div>
+
+    <div class="detail-row" id="detailRow">
+      <div class="detail-item">
+        <div class="d-val" id="dPct"></div>
+        <div class="d-lbl">Percentage</div>
+      </div>
+      <div class="detail-item">
+        <div class="d-val" id="dPass">150</div>
+        <div class="d-lbl">Pass Mark</div>
+      </div>
+      <div class="detail-item">
+        <div class="d-val" id="dRank"></div>
+        <div class="d-lbl">Rank</div>
+      </div>
+    </div>
+
+    <div class="progress-card" id="progressCard">
+      <div class="prog-top">
+        <span>Score Progress</span>
+        <span id="progPctLbl"></span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="progFill" style="width:0%"></div>
+      </div>
+      <div class="prog-mark">Pass mark at 75%</div>
+    </div>
+
+    <div class="msg-card" id="msgCard"></div>
+
+    <button class="logout-btn" onclick="doLogout()">← Sign Out</button>
+  </div>
+  <footer><span>Industry 5.0 Scholarship</span> &nbsp;·&nbsp; 2024</footer>
+</div>
+
+<script>
+// ===== STUDENT DATA =====
+// username → { password, name, score, rank }
+// score: null = absent
+const STUDENTS = {
+  "harith_v":         { password: "Har@2024", name: "HARITH V",         score: 166, rank: 1 },
+  "yaswanth_t":       { password: "Yas@2024", name: "YASWANTH T",       score: 155, rank: 2 },
+  "kabelesh_ts":      { password: "Kab@2024", name: "KABELESH T",       score: 126, rank: 3 },
+  "dharshan_mn":      { password: "Dha@2024", name: "DHARSHAN M N",     score: null, rank: null },
+  "arumugam_p":       { password: "Aru@2024", name: "ARUMUGAM PANJALI", score: 98,  rank: 4 },
+  "kishore_gem":      { password: "Kis@2024", name: "KISHORE G E M",    score: 96,  rank: 5 }
+};
+const PASS_MARK = 150;
+const TOTAL = 200;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+function doLogin(){
+  const u = document.getElementById('uname').value.trim().toLowerCase();
+  const p = document.getElementById('pwd').value;
+  const err = document.getElementById('errMsg');
+  err.textContent = '';
+
+  if(!STUDENTS[u]){ err.textContent = 'Username not found.'; return; }
+  if(STUDENTS[u].password !== p){ err.textContent = 'Incorrect password.'; return; }
+
+  showResult(STUDENTS[u]);
+}
+
+function showResult(s){
+  const absent = s.score === null;
+  const passed = !absent && s.score >= PASS_MARK;
+  const pct = absent ? null : Math.round((s.score / TOTAL) * 100 * 10) / 10;
+
+  // greeting
+  document.getElementById('greetIcon').textContent = absent ? '⚠️' : passed ? '🎉' : '💪';
+  document.getElementById('greetName').innerHTML = `Hi, <em>${s.name}</em>`;
+
+  // score card
+  const card = document.getElementById('scoreCard');
+  card.className = 'score-card ' + (absent ? 'absent-card' : passed ? 'pass-card' : 'fail-card');
+  document.getElementById('scoreBig').textContent = absent ? '—' : s.score;
+
+  const statusEl = document.getElementById('statusBig');
+  if(absent){
+    statusEl.className = 'status-big status-absent';
+    statusEl.textContent = '⚠ Absent';
+  } else if(passed){
+    statusEl.className = 'status-big status-pass';
+    statusEl.textContent = '✓ Pass';
+  } else {
+    statusEl.className = 'status-big status-fail';
+    statusEl.textContent = '✗ Fail';
+  }
+
+  // detail row
+  document.getElementById('dPct').textContent  = absent ? '—' : pct + '%';
+  document.getElementById('dRank').textContent = s.rank ? '#' + s.rank : '—';
+
+  // progress bar
+  const fill = document.getElementById('progFill');
+  const fillPct = absent ? 0 : pct;
+  fill.className = 'prog-fill ' + (absent ? '' : passed ? (s.rank===1 ? 'fill-gold' : 'fill-pass') : 'fill-fail');
+  document.getElementById('progPctLbl').textContent = absent ? '—' : pct + '%';
+  setTimeout(() => { fill.style.width = fillPct + '%'; }, 100);
+
+  // message
+  const msg = document.getElementById('msgCard');
+  if(absent){
+    msg.className = 'msg-card';
+    msg.textContent = 'You were not present for the exam. Please contact the organiser for further details.';
+  } else if(passed && s.rank === 1){
+    msg.className = 'msg-card msg-pass';
+    msg.textContent = '🥇 Congratulations! You are the topper of this exam. Excellent work!';
+  } else if(passed){
+    msg.className = 'msg-card msg-pass';
+    msg.textContent = '🎉 Congratulations! You have cleared the exam. Keep it up!';
+  } else {
+    msg.className = 'msg-card msg-fail';
+    msg.textContent = '💪 You missed the pass mark this time. Work hard and come back stronger!';
+  }
+
+  show('resultScreen');
+}
+
+function doLogout(){
+  document.getElementById('uname').value = '';
+  document.getElementById('pwd').value = '';
+  document.getElementById('errMsg').textContent = '';
+  document.getElementById('progFill').style.width = '0%';
+  show('loginScreen');
+}
+</script>
+</body>
+</html>
